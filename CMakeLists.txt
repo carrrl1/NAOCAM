@@ -9,9 +9,9 @@ option(NAOCAM_IS_REMOTE
 set(CMAKE_CXX_FLAGS "-stdlib=libstdc++")
 
 set(_srcs
-  main.cpp
-  naocam.h
-  naocam.cpp
+  ./src/main.cpp
+  ./src/naocam.h
+  ./src/naocam.cpp
 )
 
 
