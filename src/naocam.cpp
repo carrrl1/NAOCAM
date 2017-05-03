@@ -73,8 +73,8 @@ Parameters of .suscribe:
 	fGVMId = fVideoProxy.subscribe(fGVMId, AL::kQVGA, AL::kRGBColorSpace, 30);
 	usingLEDS(3.0f);
 	posture.goToPosture("StandInit", 0.5f);
-  	trackingObject();
-  	}
+  trackingObject();
+  }
 
 ///If the fVideoProxy can't suscribe, then exit with status 1.
 	catch (const AL::ALError& e)
@@ -291,7 +291,7 @@ driver. Optional after a getImageRemote but MANDATORY after a getImageLocal.*/
 ///Do not forget to release the image.
 }
 
-void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status)	{
+void NaoCam::featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status)	{
 
 ///This function automatically gets rid of points for which tracking fails
 
@@ -317,7 +317,7 @@ void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Poin
 }
 
 
-void featureDetection(Mat img_1, vector<Point2f>& points1)	{   ///uses FAST as of now, modify parameters as necessary
+void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{   ///uses FAST as of now, modify parameters as necessary
   vector<KeyPoint> keypoints_1;
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
