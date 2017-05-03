@@ -1,7 +1,7 @@
 /**
  * #Noobs
  */
- 
+
 ///Include the header file
 #include "naocam.h"
 
@@ -45,8 +45,8 @@ NaoCam::NaoCam( boost::shared_ptr<AL::ALBroker> broker, const string& name):
   setModuleDescription("This module identify and tracks an 2D object using SURF and SIFT algorithms.");
 }
 
-///The destructor unsubscribes the proxies. 
-NaoCam::~NaoCam() 
+///The destructor unsubscribes the proxies.
+NaoCam::~NaoCam()
 {
 	fVideoProxy.unsubscribe(fGVMId);
 	mProxy.rest();
@@ -54,13 +54,13 @@ NaoCam::~NaoCam()
 }
 
 
-void NaoCam::init() 
+void NaoCam::init()
 {
 ///Run the desire methods
 	try
 	{
 /*
-Parameters of .suscribe:	
+Parameters of .suscribe:
 	*Name – Name of the subscribing module.
 	*resolution – Resolution requested.
 		**AL::kQQVGA image of 160*120px.
@@ -75,9 +75,9 @@ Parameters of .suscribe:
 	posture.goToPosture("StandInit", 0.5f);
   	trackingObject();
   	}
-  	
-///If the fVideoProxy can't suscribe, then exit with status 1. 
-	catch (const AL::ALError& e) 
+
+///If the fVideoProxy can't suscribe, then exit with status 1.
+	catch (const AL::ALError& e)
 	{
     cerr << "Caught exception: \n" << e.what() << endl;
 	::exit(1);
@@ -85,19 +85,19 @@ Parameters of .suscribe:
 }
 
 ///Using LEDs.
-void NaoCam::usingLEDS(float duration) 
+void NaoCam::usingLEDS(float duration)
 {
 	leds.rasta(duration);
 }
 
 ///Method for moving NAO's head, receives an angle (float) and the direction of movement (string).
 ///The string to receive can be either "HeadYaw" for X movement or "HeadPitch" for Y movement.
-void NaoCam::moveHead(float move, string joint) 
+void NaoCam::moveHead(float move, string joint)
 {
 
 ///The name of the joint to be moved.
   const AL::ALValue jointName = joint;
-  
+
 ///Make sure the head is stiff to be able to move it. To do so, make the stiffness go to the maximum in one second.
 ///Target stiffness.
 	AL::ALValue stiffness = 1.0f;
@@ -120,10 +120,10 @@ void NaoCam::moveHead(float move, string joint)
     stiffness = 0.0f;
     time = 1.0f;
     mProxy.stiffnessInterpolation(jointName, stiffness, time);
-    
+
 }
 
-void NaoCam::trackingObject() 
+void NaoCam::trackingObject()
 {
 ///Load image of the object to be recognized and load to grayscale.
 	const Mat img_object = imread("img.jpg", CV_LOAD_IMAGE_GRAYSCALE);
@@ -152,9 +152,9 @@ while ((char) waitKey(30) != 27){
 /// Access the image buffer (6th field) and assign it to the opencv image container.
     img_scene_color.data = (uchar*) img[6].GetBinary();
 /* Convert coloured scene image to grayscale scene image.
-	This is performed to have better matches*/ 
+	This is performed to have better matches*/
     cvtColor(img_scene_color, img_scene, CV_BGR2GRAY);
-  
+
 ///*Detect the keypoints using SURF Detector
 /// Set minHessian for the SurfFeatureDetector.
   	int minHessian = 400;
@@ -170,16 +170,16 @@ while ((char) waitKey(30) != 27){
 	Mat descriptors_object, descriptors_scene;
 	extractor.compute( img_object, keypoints_object, descriptors_object );
 	extractor.compute( img_scene, keypoints_scene, descriptors_scene );
-  
+
 ///*Matching descriptor vectors using FLANN matcher.
 	FlannBasedMatcher matcher;
 	vector< DMatch > matches;
 	matcher.match( descriptors_object, descriptors_scene, matches );
 
 ///Calculate max and min distances between keypoints
-	double max_distance = 0; 
+	double max_distance = 0;
 	double min_distance = 100;
-	
+
 	for( int i = 0; i < descriptors_object.rows; i++ )
 	{ double distance = matches[i].distance;
     	if( distance < min_distance ) min_distance = distance;
@@ -194,10 +194,10 @@ while ((char) waitKey(30) != 27){
   	vector<DMatch> good_matches;
 
 	for( int i = 0; i < descriptors_object.rows; i++ )
-	{ 
+	{
 		if( matches[i].distance < 3*min_distance )
      	{
-			good_matches.push_back(matches[i]); 
+			good_matches.push_back(matches[i]);
 		}
 	}
 
@@ -227,10 +227,10 @@ while ((char) waitKey(30) != 27){
 	vector<Point2f> obj_corners(5);
 	obj_corners[0] = cvPoint(0,0);
 	obj_corners[1] = cvPoint(img_object.cols, 0);
-	obj_corners[2] = cvPoint(img_object.cols, img_object.rows); 
+	obj_corners[2] = cvPoint(img_object.cols, img_object.rows);
 	obj_corners[3] = cvPoint(0, img_object.rows);
 ///Get the center of the object
-	obj_corners[4] = cvPoint(img_object.cols/2,img_object.rows/2 ); 
+	obj_corners[4] = cvPoint(img_object.cols/2,img_object.rows/2 );
 	vector<Point2f> scene_corners(5);
 
 ///Adapt the image from the object to the scene.
@@ -242,17 +242,17 @@ while ((char) waitKey(30) != 27){
  	line( img_matches, scene_corners[2] + Point2f( img_object.cols, 0), scene_corners[3] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
 	line( img_matches, scene_corners[3] + Point2f( img_object.cols, 0), scene_corners[0] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
 ///Draw the center of the object.
-	circle( img_matches, scene_corners[4] + Point2f( img_object.cols, 0), 3, Scalar( 255, 0, 0), -1 ); 
+	circle( img_matches, scene_corners[4] + Point2f( img_object.cols, 0), 3, Scalar( 255, 0, 0), -1 );
 ///Draw the center of the scene.
-	circle( img_matches, Point2f(img_scene.cols/2, img_scene.rows/2) + Point2f( img_object.cols, 0), 3 , Scalar( 0, 0, 255), -1);  
-  
+	circle( img_matches, Point2f(img_scene.cols/2, img_scene.rows/2) + Point2f( img_object.cols, 0), 3 , Scalar( 0, 0, 255), -1);
+
 ///Print position of the center of the object.
 	cout<<"--X position: "<<scene_corners[4].x<<endl;
 	cout<<"--Y position: "<<scene_corners[4].y<<endl;
 
 ///Show detected matches
 	imshow( "Object Detection", img_matches);
-  
+
 ///Getting distance froms object to center.
 	float movex = img_scene.cols/2-scene_corners[4].x;
 	float movey = -img_scene.rows/2+scene_corners[4].y;
@@ -269,10 +269,10 @@ while ((char) waitKey(30) != 27){
 		cout<<"--Moving in y: "<<movey<<endl;
 		moveHead(movey*0.85f/img_scene.rows, "HeadPitch");
 	}
-	
+
 /*If the distance between the center of the object and the center of the scene is less than
 	30 pixels, then the object is detected, so say "I found the object"
-*/ 
+*/
 
 	if((abs(movex)<30)&&(abs(movey)<30))
 	{
@@ -282,11 +282,45 @@ while ((char) waitKey(30) != 27){
 	}
 
 
-	
+
 /*Tells to ALVideoDevice that it can give back the image buffer to the
 driver. Optional after a getImageRemote but MANDATORY after a getImageLocal.*/
 	fVideoProxy.releaseImage(fGVMId);
   }
   destroyAllWindows();
-///Do not forget to release the image. 
+///Do not forget to release the image.
+}
+
+void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status)	{
+
+///This function automatically gets rid of points for which tracking fails
+
+  vector<float> err;
+  Size winSize=Size(21,21);
+  TermCriteria termcrit=TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 0.01);
+
+  calcOpticalFlowPyrLK(img_1, img_2, points1, points2, status, err, winSize, 3, termcrit, 0, 0.001);
+
+  ///getting rid of points for which the KLT tracking failed or those who have gone outside the frame
+  int indexCorrection = 0;
+  for( int i=0; i<status.size(); i++)
+     {  Point2f pt = points2.at(i- indexCorrection);
+     	if ((status.at(i) == 0)||(pt.x<0)||(pt.y<0))	{
+     		  if((pt.x<0)||(pt.y<0))	{
+     		  	status.at(i) = 0;
+     		  }
+     		  points1.erase (points1.begin() + (i - indexCorrection));
+     		  points2.erase (points2.begin() + (i - indexCorrection));
+     		  indexCorrection++;
+     	}
+     }
+}
+
+
+void featureDetection(Mat img_1, vector<Point2f>& points1)	{   ///uses FAST as of now, modify parameters as necessary
+  vector<KeyPoint> keypoints_1;
+  int fast_threshold = 20;
+  bool nonmaxSuppression = true;
+  FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
+  KeyPoint::convert(keypoints_1, points1, vector<int>());
 }

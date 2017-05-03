@@ -1,7 +1,7 @@
 /**
  * #NoobTeam
  */
- 
+
 ///Define the class name.
 #ifndef NAOCAM_NAOCAM_H
 #define NAOCAM_NAOCAM_H
@@ -10,6 +10,15 @@
 #include <alcommon/almodule.h>
 #include <alvision/alimage.h>
 #include <string>
+
+#include <iostream>
+#include <ctype.h>
+#include <algorithm> // for copy
+#include <iterator> // for ostream_iterator
+#include <vector>
+#include <ctime>
+#include <sstream>
+#include <fstream>
 
 ///Include Aldebaran libraries to create a proxy between Nao and PC.
 #include <alproxies/alvideodeviceproxy.h>
@@ -28,6 +37,8 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
 
+#include "opencv2/video/tracking.hpp"
+
 ///Define namespace cv and std.
 namespace cv{}
 using namespace std;
@@ -45,12 +56,14 @@ class NaoCam : public AL::ALModule
     NaoCam(boost::shared_ptr<AL::ALBroker> broker, const string& name);
     virtual ~NaoCam();
     void init();
-    void trackingObject();
     void moveHead(float move, string joint);
     void usingLEDS(float duration);
     void move_to(float theta);
+    void trackingObject();
+    void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
+    void featureDetection(Mat img_1, vector<Point2f>& points1)
 
-///Define private variables. 
+///Define private variables.
   private:
     AL::ALVideoDeviceProxy fVideoProxy;
     std::string fGVMId;
@@ -62,4 +75,3 @@ class NaoCam : public AL::ALModule
 };
 
 #endif  // NAOCAM_NAOCAM_H
-
