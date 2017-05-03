@@ -42,7 +42,7 @@
 
 ## NOTE:
 * If you have problems with DYLD libraries when loading the executable the export bin files from SDK:
-	`<export DYLD_LIBRARY_PATH=/Users/path/to/SDK/lib/>
+	`<export DYLD_LIBRARY_PATH=/Users/path/to/SDK/lib/>`
 
 ---
 
