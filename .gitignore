@@ -29,5 +29,6 @@ Temporary Items
 
 ### qibuild ###
 .qi
+build-mytoolchain
 
 # End of https://www.gitignore.io/api/macos
