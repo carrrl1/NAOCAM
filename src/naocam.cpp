@@ -1,36 +1,5 @@
-/**
- * #Noobs
- */
-
 ///Include the header file
 #include "naocam.h"
-
-///Include Aldebaran libraries to create a proxy between Nao and PC.
-#include <alvalue/alvalue.h>
-#include <alcommon/alproxy.h>
-#include <alcommon/albroker.h>
-
-///Include opencv libraries for image processing.
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/core/core.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-
-///Define namespace cv and std.
-namespace cv{}
-using namespace std;
-using namespace cv;
-
-///Include Aldebaran libraries to suscribe the desire target.
-#include <alvision/alvisiondefinitions.h>
-#include <alproxies/almotionproxy.h>
-#include <alproxies/altexttospeechproxy.h>
-#include <alproxies/alledsproxy.h>
-#include <alproxies/alrobotpostureproxy.h>
-
 
 ///The constructor initialize the broker and the objects.
 NaoCam::NaoCam( boost::shared_ptr<AL::ALBroker> broker, const string& name):
