@@ -44,7 +44,7 @@
 #include "opencv2/nonfree/features2d.hpp"
 #include "opencv2/nonfree/nonfree.hpp"
 
-#include "opencv2/video/tracking.hpp"
+//#include "opencv2/video/tracking.hpp"
 ///Define namespace cv and std.
 namespace cv{}
 using namespace std;
