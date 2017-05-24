@@ -1,11 +1,5 @@
 ///Include libraries to comunicate using the Broker.
 ///To connect to a desire IP, run ./naocam --pip <adress> from ./toolchain/sdk/bin
-#include <signal.h>
-#include <boost/shared_ptr.hpp>
-#include <alcommon/albroker.h>
-#include <alcommon/almodule.h>
-#include <alcommon/albrokermanager.h>
-#include <alcommon/altoolsmain.h>
 
 ///Include the header file
 #include "naocam.h"

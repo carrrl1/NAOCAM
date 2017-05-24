@@ -2,9 +2,17 @@
 #ifndef NAOCAM_NAOCAM_H
 #define NAOCAM_NAOCAM_H
 
-#include <boost/shared_ptr.hpp>
+///Include Aldebaran libraries to create a proxy between Nao and PC.
+
+//#include <boost/shared_ptr.hpp>
 #include <alcommon/almodule.h>
 #include <alvision/alimage.h>
+#include <signal.h>
+#include <alcommon/albroker.h>
+#include <alcommon/albrokermanager.h>
+#include <alcommon/altoolsmain.h>
+#include <alvalue/alvalue.h>
+#include <alcommon/alproxy.h>
 
 #include <string>
 #include <iostream>
@@ -16,11 +24,6 @@
 #include <sstream>
 #include <fstream>
 
-///Include Aldebaran libraries to create a proxy between Nao and PC.
-#include <alvalue/alvalue.h>
-#include <alcommon/alproxy.h>
-#include <alcommon/albroker.h>
-
 ///Include Aldebaran libraries to suscribe the desire target.
 #include <alvision/alvisiondefinitions.h>
 #include <alproxies/almotionproxy.h>
@@ -30,14 +33,14 @@
 #include <alproxies/alvideodeviceproxy.h>
 
 ///Include opencv libraries for image processing.
-#include "opencv2/video/tracking.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/calib3d/calib3d.hpp"
-#include "opencv2/core/core.hpp"
-#include "opencv/cv.h"
-#include "opencv/highgui.h"
+#include <opencv2/video/tracking.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
 
 ///Define namespace cv and std.
 namespace cv{}
@@ -47,6 +50,9 @@ namespace AL
 {
   class ALBroker;
 }
+
+#define MAX_FRAME 1000
+#define MIN_NUM_FEAT 2000
 
 class NaoCam : public AL::ALModule
 {
@@ -62,6 +68,8 @@ class NaoCam : public AL::ALModule
     //void trackingObject();
     void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
     void featureDetection(Mat img_1, vector<Point2f>& points1);
+    double getAbsoluteScale(int frame_id, int sequence_id, double z_cal);
+    int startVO(void);
 
 ///Define private variables.
   private:
