@@ -2,25 +2,30 @@ cmake_minimum_required(VERSION 2.8)
 project(naocam)
 find_package(qibuild)
 
+#include_directories( ${OpenCV_INCLUDE_DIRS} )
+#message(STATUS "${OpenCV_INCLUDE_DIRS}")
+
 option(NAOCAM_IS_REMOTE
   "Module is compiled as a remote module (ON or OFF)"
   ON)
 
-set(CMAKE_CXX_FLAGS "-stdlib=libstdc++")
+#set(CMAKE_CXX_FLAGS "-stdlib=libstdc++")
 
-set(_srcs
+set(srcs
   ./src/main.cpp
   ./src/naocam.h
   ./src/naocam.cpp
 )
 
-
 if(NAOCAM_IS_REMOTE)
   add_definitions(" -DNAOCAM_IS_REMOTE")
-  qi_create_bin(naocam ${_srcs})
+  qi_create_bin(naocam ${srcs})
 else()
-  qi_create_lib(naocam SHARED ${_srcs} SUBFOLDER naoqi)
+  qi_create_lib(naocam SHARED ${srcs} SUBFOLDER naoqi)
 endif()
 
-
-qi_use_lib(naocam OPENCV2_CORE OPENCV2_HIGHGUI OPENCV2_IMGPROC OPENCV2_OBJDETECT OPENCV2_FEATURES2D OPENCV2_CALIB3D ALCOMMON ALVISION)
+#message(STATUS "${OpenCV_LIBS}")
+qi_use_lib(naocam
+  ALCOMMON
+  ALVISION
+  ${OpenCV_LIBS})

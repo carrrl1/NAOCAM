@@ -1,7 +1,3 @@
-/**
- * #NoobTeam
- */
-
 ///Include libraries to comunicate using the Broker.
 ///To connect to a desire IP, run ./naocam --pip <adress> from ./toolchain/sdk/bin
 #include <signal.h>
@@ -39,7 +35,7 @@ extern "C"
 
     return 0;
   }
-  
+
 ///Close the module.
   ALCALL int _closeModule()
   {
@@ -57,4 +53,3 @@ extern "C"
     ALTools::mainFunction("naocam", argc, argv, sig);
   }
 #endif
-
