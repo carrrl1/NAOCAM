@@ -69,7 +69,7 @@ void NaoCam::moveHead(float move, string joint)
 
 ///Make sure the head is stiff to be able to move it. To do so, make the stiffness go to the maximum in one second.
 ///Target stiffness.
-		AL::ALValue stiffness = 1.0f;
+    AL::ALValue stiffness = 1.0f;
 ///Time (in seconds) to reach the target.
     AL::ALValue time = 1.0f;
 ///Call the stiffness interpolation method.
@@ -127,7 +127,7 @@ void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{
   KeyPoint::convert(keypoints_1, points1, vector<int>());
 }
 
-double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
+double NaoCam::getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
 
   string line;
   int i = 0;
@@ -163,8 +163,8 @@ double getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
 
 }
 
-/*
-int startVO(void)	{
+
+int NaoCam::startVO(void)	{
 
   Mat img_1, img_2;
   Mat R_f, t_f; //the final rotation and tranlation vectors containing the
@@ -304,4 +304,3 @@ int startVO(void)	{
 
   return 0;
 }
-/**/
