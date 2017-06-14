@@ -8,11 +8,11 @@
 #include <alcommon/almodule.h>
 #include <alvision/alimage.h>
 #include <signal.h>
-#include <alcommon/albroker.h>
 #include <alcommon/albrokermanager.h>
 #include <alcommon/altoolsmain.h>
 #include <alvalue/alvalue.h>
 #include <alcommon/alproxy.h>
+#include <alcommon/albroker.h>
 
 #include <string>
 #include <iostream>
@@ -48,22 +48,26 @@ namespace AL
 {
   class ALBroker;
 }
+using namespace AL;
 
 #define MAX_FRAME 1000
 #define MIN_NUM_FEAT 2000
 
-class NaoCam : public AL::ALModule
+class NaoCam : public ALModule
 {
 ///Define public methods.
 ///init() should be always be present.
   public:
-    NaoCam(boost::shared_ptr<AL::ALBroker> broker, const string& name);
+    NaoCam(boost::shared_ptr<ALBroker> broker, const string& name);
     virtual ~NaoCam();
     void init();
     void moveHead(float move, string joint);
     void usingLEDS(float duration);
     void move_to(float theta);
     //void trackingObject();
+    int getFrame(void);
+    int streamCamera(void);
+    int calibrateCamera(void);
     void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
     void featureDetection(Mat img_1, vector<Point2f>& points1);
     double getAbsoluteScale(int frame_id, int sequence_id, double z_cal);
@@ -71,13 +75,16 @@ class NaoCam : public AL::ALModule
 
 ///Define private variables.
   private:
-    AL::ALVideoDeviceProxy fVideoProxy;
-    std::string fGVMId;
-    AL::ALMotionProxy mProxy;
-    AL::ALTextToSpeechProxy aProxy;
-    AL::ALLedsProxy leds;
-    AL::ALRobotPostureProxy posture;
-    AL::ALImage* fImagePointer;
+    ALVideoDeviceProxy fVideoProxy;
+    string fGVMId;
+    ALMotionProxy mProxy;
+    ALTextToSpeechProxy aProxy;
+    ALLedsProxy leds;
+    ALRobotPostureProxy posture;
+    ALImage* fImagePointer;
+    int pxx,pxy;
+    Mat cvFRAME;
+    ALValue alFRAME;
 };
 
 #endif  // NAOCAM_NAOCAM_H
