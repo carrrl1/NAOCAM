@@ -274,6 +274,23 @@ int NaoCam::calibrateCamera(void){
 	return 0;
 }
 
+void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{
+	///uses FAST as of now, modify parameters as necessary
+  vector<KeyPoint> keypoints_1;
+  int fast_threshold = 20;
+  bool nonmaxSuppression = true;
+  FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
+  //KeyPoint::convert(keypoints_1, points1, vector<int>());
+
+
+	///*Detect the keypoints using SURF Detector
+	/// Set minHessian for the SurfFeatureDetector.
+  //int minHessian = 400;
+	//SurfFeatureDetector detector( minHessian );
+	/// Set keypoint vectors for the image and the scene.
+	//detector.detect( img_1, keypoints_1);
+}
+
 void NaoCam::featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status)	{
 
 ///This function automatically gets rid of points for which tracking fails
@@ -297,16 +314,6 @@ void NaoCam::featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vec
      		  indexCorrection++;
      	}
      }
-}
-
-
-void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{
-	///uses FAST as of now, modify parameters as necessary
-  vector<KeyPoint> keypoints_1;
-  int fast_threshold = 20;
-  bool nonmaxSuppression = true;
-  //FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
-  //KeyPoint::convert(keypoints_1, points1, vector<int>());
 }
 
 double NaoCam::getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{

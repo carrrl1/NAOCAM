@@ -39,6 +39,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/core/core.hpp>
+#include <opencv2/xfeatures2d/nonfree.hpp>
 
 ///Define namespace cv and std.
 namespace cv{}
@@ -68,8 +69,8 @@ class NaoCam : public ALModule
     int getFrame(void);
     int streamCamera(void);
     int calibrateCamera(void);
-    void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
     void featureDetection(Mat img_1, vector<Point2f>& points1);
+    void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
     double getAbsoluteScale(int frame_id, int sequence_id, double z_cal);
     int startVO(void);
 
