@@ -280,7 +280,7 @@ void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{
   int fast_threshold = 20;
   bool nonmaxSuppression = true;
   FAST(img_1, keypoints_1, fast_threshold, nonmaxSuppression);
-  //KeyPoint::convert(keypoints_1, points1, vector<int>());
+  KeyPoint::convert(keypoints_1, points1, vector<int>());
 
 
 	///*Detect the keypoints using SURF Detector
@@ -497,18 +497,19 @@ while ((char) waitKey(30) != 27){
 ///*Detect the keypoints using SURF Detector
 /// Set minHessian for the SurfFeatureDetector.
   	int minHessian = 400;
-	SurfFeatureDetector detector( minHessian );
+
+	//Ptr<SURF> detector = SURF::create( minHessian );
 /// Set keypoint vectors for the image and the scene.
 	vector<KeyPoint> keypoints_object, keypoints_scene;
-	detector.detect( img_object, keypoints_object );
-	detector.detect( img_scene, keypoints_scene );
+	detector->detect( img_object, keypoints_object );
+	detector->detect( img_scene, keypoints_scene );
 
 ///*Calculate descriptors (feature vectors).
-	SurfDescriptorExtractor extractor;
+	//Ptr<SURF> extractor = SURF::create();
 ///Set descriptors vectors for the image and the scene.
 	Mat descriptors_object, descriptors_scene;
-	extractor.compute( img_object, keypoints_object, descriptors_object );
-	extractor.compute( img_scene, keypoints_scene, descriptors_scene );
+	//extractor->compute( img_object, keypoints_object, descriptors_object );
+	//extractor->compute( img_scene, keypoints_scene, descriptors_scene );
 
 ///*Matching descriptor vectors using FLANN matcher.
 	FlannBasedMatcher matcher;
