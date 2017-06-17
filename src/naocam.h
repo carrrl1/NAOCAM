@@ -65,7 +65,7 @@ class NaoCam : public ALModule
     void moveHead(float move, string joint);
     void usingLEDS(float duration);
     void move_to(float theta);
-    //void trackingObject();
+    void trackingObject();
     int getFrame(void);
     int streamCamera(void);
     int calibrateCamera(void);
