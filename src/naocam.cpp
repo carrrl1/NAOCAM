@@ -501,8 +501,8 @@ while ((char) waitKey(30) != 27){
 	//Ptr<SURF> detector = SURF::create( minHessian );
 /// Set keypoint vectors for the image and the scene.
 	vector<KeyPoint> keypoints_object, keypoints_scene;
-	detector->detect( img_object, keypoints_object );
-	detector->detect( img_scene, keypoints_scene );
+	//detector->detect( img_object, keypoints_object );
+	//detector->detect( img_scene, keypoints_scene );
 
 ///*Calculate descriptors (feature vectors).
 	//Ptr<SURF> extractor = SURF::create();
