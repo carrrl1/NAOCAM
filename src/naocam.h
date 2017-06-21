@@ -69,6 +69,7 @@ class NaoCam : public ALModule
     int getFrame(void);
     int streamCamera(void);
     int calibrateCamera(void);
+    void readIntrinsic(void);
     void featureDetection(Mat img_1, vector<Point2f>& points1);
     void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
     double getAbsoluteScale(int frame_id, int sequence_id, double z_cal);
@@ -85,6 +86,9 @@ class NaoCam : public ALModule
     ALImage* fImagePointer;
     int pxx,pxy;
     Mat cvFRAME;
+    double focal = 562.5;
+    double cx=324;
+    double cy=189;
     ALValue alFRAME;
 };
 

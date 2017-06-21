@@ -82,7 +82,7 @@ Parameters of .suscribe:
 
 	///Select the desire mode.
 	int mode;
-	cout << "\n Enter the desire mode. \n1. Stream from Nao camera. \n2. Calibrate Nao camera. \n3. Start Visual Odometry" << endl;
+	cout << "\n Enter the desire mode: \n1. Stream from Nao camera. \n2. Calibrate Nao camera. \n3. Start Visual Odometry" << endl;
 	cin >> mode;
 	switch (mode) {
 		case 1:
@@ -180,19 +180,19 @@ int NaoCam::streamCamera(void){
 	cout << "Streaming..." << endl;
 
 	/** Create a OpenCV window to display the images. */
-	namedWindow("NAO CAMERA STREAMING");
+	namedWindow("NAO CAMERA STREAMING", WINDOW_AUTOSIZE );
 
 	/** Main loop. Exit when pressing ESC.*/
 	while ((char) waitKey(30) != 27){
 		getFrame();
 		/** Display the stream image on screen.*/
-		imshow("images", cvFRAME);
+		imshow("NAO CAMERA STREAMING", cvFRAME);
 	}
 	return 0;
 }
 
 int NaoCam::calibrateCamera(void){
-	cout << "Calibrating..." << endl;
+	cout << "CALIBRATION MODE" << endl;
 	int numBoards = 0;
   int numCornersHor;
   int numCornersVer;
@@ -203,9 +203,10 @@ int NaoCam::calibrateCamera(void){
 	cout<< "Enter number of corners along height: " <<endl;
 	cin>>numCornersVer;
 
-	cout<< "Enter number of boards:" <<endl;
+	cout<< "Enter the number of snaps to take:" <<endl;
 	cin>>numBoards;
 
+	cout<< "Starting Chessboard detection..." <<endl;
 	int numSquares = numCornersHor * numCornersVer;
 	Size board_sz = Size(numCornersHor, numCornersVer);
 	vector<vector<Point3f> > object_points;
@@ -222,6 +223,7 @@ int NaoCam::calibrateCamera(void){
 
 	namedWindow("Chessboard Frame", WINDOW_AUTOSIZE );
 
+	cout<< "Press spacebar to take a snap..." <<endl;
 	while(successes<numBoards) {
 		getFrame();
 		calibFRAME=cvFRAME;
@@ -242,21 +244,35 @@ int NaoCam::calibrateCamera(void){
 		if(key==' ' && found!=0) {
 			image_points.push_back(corners);
 			object_points.push_back(obj);
-			cout << "Snap stored!" << endl;
+			cout << "Snap taken!" << endl;
 			successes++;
 			if(successes>=numBoards) break;
 		}
 	}
 
-	Mat intrinsic = Mat(3, 3, CV_32FC1);
+	//intrinsic was CV_32FC1
+	Mat intrinsic = Mat(3, 3, CV_64F);
 	Mat distCoeffs;
 	vector<Mat> rvecs;
 	vector<Mat> tvecs;
 
-	intrinsic.ptr<float>(0)[0] = 1;
-	intrinsic.ptr<float>(1)[1] = 1;
+	intrinsic.at<double>(0,0) = 1;
+	intrinsic.at<double>(1,1) = 1;
+
 
 	::calibrateCamera(object_points, image_points, calibFRAME.size(), intrinsic, distCoeffs, rvecs, tvecs);
+
+	cout<<"Intrinsic matrix: \n"<<intrinsic<<endl;
+	cout<<"Intrinsic parameter fx: "<<intrinsic.at<double>(0,0)<<endl;
+	cout<<"Intrinsic parameter fy: "<<intrinsic.at<double>(1,1)<<endl;
+	cout<<"Intrinsic parameter cx: "<<intrinsic.at<double>(0,2)<<endl;
+	cout<<"Intrinsic parameter cy: "<<intrinsic.at<double>(1,2)<<endl;
+	cout<<intrinsic.at<double>(2,2)<<endl;
+
+	cout<<"Saving intrisic camera matriz ..."<<endl;
+	FileStorage fsw("intrinsic.yml", FileStorage::WRITE);
+	fsw<< "cameraMatrix" <<intrinsic;
+	fsw.release();
 
 	namedWindow("Distorted Frame", WINDOW_AUTOSIZE );
 	namedWindow("Undistorted Frame", WINDOW_AUTOSIZE );
@@ -272,6 +288,27 @@ int NaoCam::calibrateCamera(void){
 	}
 
 	return 0;
+}
+
+void NaoCam::readIntrinsic(void){
+	if(ifstream("intrinsic.yml")){
+		Mat intrinsic=Mat(3, 3, CV_64F);
+		FileStorage fsr("intrinsic.yml", FileStorage::READ);
+		fsr["cameraMatrix"]>>intrinsic;
+		cout<<"Intrinsic matrix: \n"<<intrinsic<<endl;
+		cout<<"Intrinsic parameter fx: "<<intrinsic.at<double>(0,0)<<endl;
+		cout<<"Intrinsic parameter fy: "<<intrinsic.at<double>(1,1)<<endl;
+		cout<<"Intrinsic parameter cx: "<<intrinsic.at<double>(0,2)<<endl;
+		cout<<"Intrinsic parameter cy: "<<intrinsic.at<double>(1,2)<<endl;
+		focal=intrinsic.at<double>(0,0);
+		cx=intrinsic.at<double>(0,2);
+		cy=intrinsic.at<double>(1,2);
+		fsr.release();
+	}
+	else{
+		cout<<"You have to calibrate the camera!"<<endl;
+		cout<<"Using default calibration..."<<endl;
+	}
 }
 
 void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{
@@ -362,12 +399,11 @@ int NaoCam::startVO(void)	{
 	//Pose and the essential matrix
 	Mat E, R, R_f, t, t_f, mask;
 	bool init=true;
-	double scale = 1.00;
+	double scale = 3.00;
 
 	//Intrinsic parameters of the camera:
-	//Fix
-  double focal = 718.8560;
-  Point2d pp(607.1928, 185.2157);
+	readIntrinsic();
+  Point2d pp(cx, cy);
 
   ofstream myfile;
   myfile.open ("results.txt");
@@ -414,7 +450,7 @@ int NaoCam::startVO(void)	{
   		currPts.at<double>(1,i) = FEATURES_I.at(i).y;
     }
 
-  	scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
+  	//scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
 
 		if(init==true)
 		{
@@ -449,7 +485,7 @@ int NaoCam::startVO(void)	{
     sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
     putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
 
-    imshow( "Road facing camera", FRAME_I);
+    imshow( "Nao camera", FRAME_I);
     imshow( "Trajectory", traj );
 
     waitKey(1);
