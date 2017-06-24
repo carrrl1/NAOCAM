@@ -239,7 +239,7 @@ int NaoCam::calibrateCamera(void){
 		getFrame();
 		calibFRAME=cvFRAME;
 
-		int key = waitKey(1);
+		key = waitKey(1);
 		if(key==27) return 0;
 		if(key==' ' && found!=0) {
 			image_points.push_back(corners);
@@ -270,45 +270,56 @@ int NaoCam::calibrateCamera(void){
 	cout<<intrinsic.at<double>(2,2)<<endl;
 
 	cout<<"Saving intrisic camera matriz ..."<<endl;
-	FileStorage fsw("intrinsic.yml", FileStorage::WRITE);
-	fsw<< "cameraMatrix" <<intrinsic;
+	FileStorage fsw("CALIBRATION.yml", FileStorage::WRITE);
+	fsw<< "CameraIntrinsicMatrix" <<intrinsic;
+	cout<<"Saving distortion coefficients matriz ..."<<endl;
+	fsw<< "DistortionCoefficientsMatrix" <<distCoeffs;
 	fsw.release();
 
 	namedWindow("Distorted Frame", WINDOW_AUTOSIZE );
 	namedWindow("Undistorted Frame", WINDOW_AUTOSIZE );
 
 	Mat imageUndistorted;
-	while(1) {
+	while(true) {
 		getFrame();
 		calibFRAME=cvFRAME;
 		undistort(calibFRAME, imageUndistorted, intrinsic, distCoeffs);
 		imshow("Distorted Frame", calibFRAME);
 		imshow("Undistorted Frame", imageUndistorted);
-		waitKey(1);
+
+		key = waitKey(1);
+		if(key==27) return 0;
 	}
 
 	return 0;
 }
 
-void NaoCam::readIntrinsic(void){
-	if(ifstream("intrinsic.yml")){
+void NaoCam::readParameters(void){
+	if(ifstream("CALIBRATION.yml")){
 		Mat intrinsic=Mat(3, 3, CV_64F);
-		FileStorage fsr("intrinsic.yml", FileStorage::READ);
-		fsr["cameraMatrix"]>>intrinsic;
-		cout<<"Intrinsic matrix: \n"<<intrinsic<<endl;
-		cout<<"Intrinsic parameter fx: "<<intrinsic.at<double>(0,0)<<endl;
-		cout<<"Intrinsic parameter fy: "<<intrinsic.at<double>(1,1)<<endl;
-		cout<<"Intrinsic parameter cx: "<<intrinsic.at<double>(0,2)<<endl;
-		cout<<"Intrinsic parameter cy: "<<intrinsic.at<double>(1,2)<<endl;
-		focal=intrinsic.at<double>(0,0);
-		cx=intrinsic.at<double>(0,2);
-		cy=intrinsic.at<double>(1,2);
+		FileStorage fsr("CALIBRATION.yml", FileStorage::READ);
+		fsr["CameraIntrinsicMatrix"]>>intrMAT;
+		cout<<"Intrinsic matrix: \n"<<intrMAT<<endl;
+		cout<<"Intrinsic parameter fx: "<<intrMAT.at<double>(0,0)<<endl;
+		cout<<"Intrinsic parameter fy: "<<intrMAT.at<double>(1,1)<<endl;
+		cout<<"Intrinsic parameter cx: "<<intrMAT.at<double>(0,2)<<endl;
+		cout<<"Intrinsic parameter cy: "<<intrMAT.at<double>(1,2)<<endl;
+		focal=intrMAT.at<double>(0,0);
+		cx=intrMAT.at<double>(0,2);
+		cy=intrMAT.at<double>(1,2);
+		fsr["DistortionCoefficientsMatrix"]>>distMAT;
 		fsr.release();
 	}
 	else{
 		cout<<"You have to calibrate the camera!"<<endl;
 		cout<<"Using default calibration..."<<endl;
 	}
+}
+
+void NaoCam::undistortFrame(void){
+	///Method to get frame and undistort it.
+		getFrame();
+		undistort(cvFRAME, cvFRAME_UND, intrMAT, distMAT);
 }
 
 void NaoCam::featureDetection(Mat img_1, vector<Point2f>& points1)	{
@@ -353,8 +364,9 @@ void NaoCam::featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vec
      }
 }
 
-double NaoCam::getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
+double NaoCam::getAbsoluteScale(void)	{
 
+/*
   string line;
   int i = 0;
   ifstream myfile ("/home/avisingh/Datasets/KITTI_VO/00.txt");
@@ -384,8 +396,26 @@ double NaoCam::getAbsoluteScale(int frame_id, int sequence_id, double z_cal)	{
     cout << "Unable to open file";
     return 0;
   }
+	*/
+	double x=instPOSITION.at(0);
+	double x_prev=prevPOSITION.at(0);
 
-  return sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev)) ;
+	double y=instPOSITION.at(1);
+	double y_prev=prevPOSITION.at(1);
+
+	double z=instPOSITION.at(2);
+	double z_prev=prevPOSITION.at(2);
+
+	prevPOSITION.at(0)=instPOSITION.at(0);
+	prevPOSITION.at(1)=instPOSITION.at(1);
+	prevPOSITION.at(2)=instPOSITION.at(2);
+	cout<<"Position in x "<<x<<endl;
+	cout<<"Previous position in x "<<x_prev<<endl;
+
+
+	double scale_calculation=sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev)) ;
+
+  return scale_calculation;
 
 }
 
@@ -399,38 +429,50 @@ int NaoCam::startVO(void)	{
 	//Pose and the essential matrix
 	Mat E, R, R_f, t, t_f, mask;
 	bool init=true;
-	double scale = 3.00;
+	double scale = 1.0;
+
+	int zoom=50;
 
 	//Intrinsic parameters of the camera:
-	readIntrinsic();
+	readParameters();
   Point2d pp(cx, cy);
 
   ofstream myfile;
   myfile.open ("results.txt");
 
   char text[100];
+	char acctext[100];
+
   int fontFace = FONT_HERSHEY_PLAIN;
   double fontScale = 1;
   int thickness = 1;
   Point textOrg(10, 50);
 
-  //Read the first frame
-	getFrame();
+  //Read the first frame and get the position of the nao.
+	prevPOSITION=mProxy.getPosition("CameraTop", 1, true);
+	undistortFrame();
+	//Wait the nao to change
+	usleep(1000000);
+
   //We use grayscale images for better features detection.
-  cvtColor(cvFRAME, FRAME_P, COLOR_BGR2GRAY);
+  cvtColor(cvFRAME_UND, FRAME_P, COLOR_BGR2GRAY);
 	featureDetection(FRAME_P, FEATURES_P);
 
-  clock_t begin = clock();
+  //clock_t begin = clock();
 
   namedWindow( "Nao camera", WINDOW_AUTOSIZE );// Create a window for display.
   namedWindow( "Trajectory", WINDOW_AUTOSIZE );// Create a window for display.
+	namedWindow( "Accelerometer trajectory", WINDOW_AUTOSIZE );// Create a window for display.
 
   Mat traj = Mat::zeros(600, 600, CV_8UC3);
+	Mat acceltraj = Mat::zeros(600, 600, CV_8UC3);
 
-  for(int numFrame=0; numFrame < MAX_FRAME; numFrame++)	{
+  //for(int numFrame=0; numFrame < MAX_FRAME; numFrame++)
+	while(true){
 		//Get the current frame.
-		getFrame();
-  	cvtColor(cvFRAME, FRAME_I, COLOR_BGR2GRAY);
+		instPOSITION=mProxy.getPosition("CameraTop", 1, true);
+		undistortFrame();
+  	cvtColor(cvFRAME_UND, FRAME_I, COLOR_BGR2GRAY);
 
   	vector<uchar> status;
   	featureTracking(FRAME_P, FRAME_I, FEATURES_P, FEATURES_I, status);
@@ -450,21 +492,21 @@ int NaoCam::startVO(void)	{
   		currPts.at<double>(1,i) = FEATURES_I.at(i).y;
     }
 
-  	//scale = getAbsoluteScale(numFrame, 0, t.at<double>(2));
-
-		if(init==true)
+		if(init)
 		{
 			R_f=R.clone();
 			t_f=t.clone();
 			init=false;
 		}
 		else{
-			if ((scale>0.1)&&(t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1))) {
+				scale = getAbsoluteScale();
+				cout<<"The absolute scale is "<<scale<<endl;
+			if ((scale>0)&&(t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1))) {
 	      t_f = t_f + scale*(R_f*t);
 	      R_f = R*R_f;
 	    }
 			else {
-			 //cout << "scale below 0.1, or incorrect translation" << endl;
+			 cout << "Scale below 0, or incorrect translation" << endl;
 			}
 		}
 
@@ -477,23 +519,35 @@ int NaoCam::startVO(void)	{
     FRAME_P = FRAME_I.clone();
     FEATURES_P = FEATURES_I;
 
-    int x = int(t_f.at<double>(0)) + 300;
-    int y = int(t_f.at<double>(2)) + 100;
+    int x = int(t_f.at<double>(0)*zoom) + 300;
+    int y = int(t_f.at<double>(2)*zoom) + 300;
     circle(traj, Point(x, y) ,1, CV_RGB(255,0,0), 2);
+		circle(acceltraj, Point(int(instPOSITION.at(0)*20)+300, int(instPOSITION.at(1)*20)+300) ,1, CV_RGB(255,0,0), 2);
 
     rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
-    sprintf(text, "Coordinates: x = %02fm y = %02fm z = %02fm", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
+		rectangle( acceltraj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
+
+    sprintf(text, "Coordinates: x = %02f y = %02f z = %02f", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
     putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+
+		sprintf(acctext, "Coordinates: x = %02f y = %02f z = %02f", instPOSITION.at(0), instPOSITION.at(1), instPOSITION.at(1));
+    putText(acceltraj, acctext, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
 
     imshow( "Nao camera", FRAME_I);
     imshow( "Trajectory", traj );
+		imshow( "Accelerometer trajectory", acceltraj );
 
-    waitKey(1);
+		key = waitKey(1);
+		if(key==27) break;
   }
 
-  clock_t end = clock();
-  double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
-  cout << "Total time taken: " << elapsed_secs << "s" << endl;
+	cout<<"Saving trajectories into images..."<<endl;
+	imwrite("TRAJECTORY.PNG",traj);
+	imwrite("ACCELEROMETER_TRAJECTORY.PNG",acceltraj);
+
+  //clock_t end = clock();
+  //double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+  //cout << "Total time taken: " << elapsed_secs << "s" << endl;
   return 0;
 }
 

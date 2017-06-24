@@ -11,7 +11,6 @@
 #include <alcommon/albrokermanager.h>
 #include <alcommon/altoolsmain.h>
 #include <alvalue/alvalue.h>
-#include <alcommon/alproxy.h>
 #include <alcommon/albroker.h>
 
 #include <string>
@@ -23,6 +22,7 @@
 #include <ctime>
 #include <sstream>
 #include <fstream>
+#include <unistd.h>
 
 ///Include Aldebaran libraries to suscribe the desire target.
 #include <alvision/alvisiondefinitions.h>
@@ -69,10 +69,11 @@ class NaoCam : public ALModule
     int getFrame(void);
     int streamCamera(void);
     int calibrateCamera(void);
-    void readIntrinsic(void);
+    void readParameters(void);
+    void undistortFrame(void);
     void featureDetection(Mat img_1, vector<Point2f>& points1);
     void featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vector<Point2f>& points2, vector<uchar>& status);
-    double getAbsoluteScale(int frame_id, int sequence_id, double z_cal);
+    double getAbsoluteScale(void);
     int startVO(void);
 
 ///Define private variables.
@@ -84,12 +85,18 @@ class NaoCam : public ALModule
     ALLedsProxy leds;
     ALRobotPostureProxy posture;
     ALImage* fImagePointer;
-    int pxx,pxy;
+    ALValue alFRAME;
     Mat cvFRAME;
+    Mat cvFRAME_UND;
+    Mat intrMAT=Mat(3, 3, CV_64F);;
+    Mat distMAT;
+    int pxx,pxy;
     double focal = 562.5;
     double cx=324;
     double cy=189;
-    ALValue alFRAME;
+    int key;
+    vector<float> prevPOSITION;
+    vector<float> instPOSITION;
 };
 
 #endif  // NAOCAM_NAOCAM_H
