@@ -270,7 +270,7 @@ int NaoCam::calibrateCamera(void){
 	cout<<intrinsic.at<double>(2,2)<<endl;
 
 	cout<<"Saving intrisic camera matriz ..."<<endl;
-	FileStorage fsw("CALIBRATION.yml", FileStorage::WRITE);
+	FileStorage fsw("CALIBRATION.YML", FileStorage::WRITE);
 	fsw<< "CameraIntrinsicMatrix" <<intrinsic;
 	cout<<"Saving distortion coefficients matriz ..."<<endl;
 	fsw<< "DistortionCoefficientsMatrix" <<distCoeffs;
@@ -295,9 +295,9 @@ int NaoCam::calibrateCamera(void){
 }
 
 void NaoCam::readParameters(void){
-	if(ifstream("CALIBRATION.yml")){
+	if(ifstream("CALIBRATION.YML")){
 		Mat intrinsic=Mat(3, 3, CV_64F);
-		FileStorage fsr("CALIBRATION.yml", FileStorage::READ);
+		FileStorage fsr("CALIBRATION.YML", FileStorage::READ);
 		fsr["CameraIntrinsicMatrix"]>>intrMAT;
 		cout<<"Intrinsic matrix: \n"<<intrMAT<<endl;
 		cout<<"Intrinsic parameter fx: "<<intrMAT.at<double>(0,0)<<endl;
@@ -464,8 +464,8 @@ int NaoCam::startVO(void)	{
   namedWindow( "Trajectory", WINDOW_AUTOSIZE );// Create a window for display.
 	namedWindow( "Accelerometer trajectory", WINDOW_AUTOSIZE );// Create a window for display.
 
-  Mat traj = Mat::zeros(600, 600, CV_8UC3);
-	Mat acceltraj = Mat::zeros(600, 600, CV_8UC3);
+  Mat traj = Mat(400, 400, CV_8UC3,Scalar(255,255,255));
+	Mat acceltraj = Mat(400, 400, CV_8UC3,Scalar(255,255,255));
 
   //for(int numFrame=0; numFrame < MAX_FRAME; numFrame++)
 	while(true){
@@ -519,19 +519,17 @@ int NaoCam::startVO(void)	{
     FRAME_P = FRAME_I.clone();
     FEATURES_P = FEATURES_I;
 
-    int x = int(t_f.at<double>(0)*zoom) + 300;
-    int y = int(t_f.at<double>(2)*zoom) + 300;
-    circle(traj, Point(x, y) ,1, CV_RGB(255,0,0), 2);
-		circle(acceltraj, Point(int(instPOSITION.at(0)*20)+300, int(instPOSITION.at(1)*20)+300) ,1, CV_RGB(255,0,0), 2);
+    circle(traj, Point(int(t_f.at<double>(0)*zoom) + 200, int(t_f.at<double>(2)*zoom) + 200) ,1, CV_RGB(0,50,190), 2);
+		circle(acceltraj, Point(int(instPOSITION.at(0)*20)+200, int(instPOSITION.at(1)*20)+200) ,1, CV_RGB(0,50,190), 2);
 
-    rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
-		rectangle( acceltraj, Point(10, 30), Point(550, 50), CV_RGB(0,0,0), CV_FILLED);
+    rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
+		rectangle( acceltraj, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
 
     sprintf(text, "Coordinates: x = %02f y = %02f z = %02f", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
-    putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+    putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 
 		sprintf(acctext, "Coordinates: x = %02f y = %02f z = %02f", instPOSITION.at(0), instPOSITION.at(1), instPOSITION.at(1));
-    putText(acceltraj, acctext, textOrg, fontFace, fontScale, Scalar::all(255), thickness, 8);
+    putText(acceltraj, acctext, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 
     imshow( "Nao camera", FRAME_I);
     imshow( "Trajectory", traj );
