@@ -192,75 +192,84 @@ int NaoCam::streamCamera(void){
 }
 
 int NaoCam::calibrateCamera(void){
+	///This function calibrates the camera using a Chessboard.
 	cout << "CALIBRATION MODE" << endl;
-	int numBoards = 0;
-  int numCornersHor;
-  int numCornersVer;
-
-	cout<<"Enter number of corners along width: "<<endl;
-	cin>>numCornersHor;
-
-	cout<< "Enter number of corners along height: " <<endl;
-	cin>>numCornersVer;
-
-	cout<< "Enter the number of snaps to take:" <<endl;
-	cin>>numBoards;
-
-	cout<< "Starting Chessboard detection..." <<endl;
-	int numSquares = numCornersHor * numCornersVer;
-	Size board_sz = Size(numCornersHor, numCornersVer);
-	vector<vector<Point3f> > object_points;
-	vector<vector<Point2f> > image_points;
-
-	vector<Point2f> corners;
-	int successes=0;
-
-	vector<Point3f> obj;
-	for(int j=0;j<numSquares;j++) obj.push_back(Point3f(j/numCornersHor, j%numCornersHor, 0.0f));
-
 	Mat calibFRAME;
 	Mat calibFRAMEGRAY;
+
+	int successes=0;
+	int snapshots = 0;
+  int horizontal_chess_corners;
+  int vertical_chess_corners;
+	///Each board cell is 0.03 m
+	double sizeof_cell=0.03;
+
+	vector<Point2f> corners;
+	vector<Point3f> chessboard_points;
+	vector<vector<Point3f> > appended_points;
+	vector<vector<Point2f> > detected_points;
+
+	///Ask the user to imput the chessboard features.
+	cout<<"Enter number of corners along width: "<<endl;
+	cin>>horizontal_chess_corners;
+
+	cout<< "Enter number of corners along height: " <<endl;
+	cin>>vertical_chess_corners;
+
+	cout<< "Enter the number of snaps to take:" <<endl;
+	cin>>snapshots;
+
+	cout<< "Starting Chessboard detection..." <<endl;
+	int total_cells = horizontal_chess_corners * vertical_chess_corners;
+	Size chessboard_size = Size(horizontal_chess_corners, vertical_chess_corners);
+
+	///Fill the vector coordinates of each corner of the chessboard
+	for(int j=0;j<total_cells;j++) chessboard_points.push_back(Point3f(j/horizontal_chess_corners*sizeof_cell, j%horizontal_chess_corners*sizeof_cell, 0.0f));
 
 	namedWindow("Chessboard Frame", WINDOW_AUTOSIZE );
 
 	cout<< "Press spacebar to take a snap..." <<endl;
-	while(successes<numBoards) {
+	while(successes<snapshots) {
 		getFrame();
-		calibFRAME=cvFRAME;
-		cvtColor(calibFRAME, calibFRAMEGRAY, CV_BGR2GRAY);
-		bool found = findChessboardCorners(calibFRAME, board_sz, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
+		//calibFRAME=cvFRAME;
+		cvtColor(cvFRAME, calibFRAMEGRAY, CV_BGR2GRAY);
+		///Try to find a chessboard in the frame.
+		bool found = findChessboardCorners(calibFRAMEGRAY, chessboard_size, corners, CV_CALIB_CB_ADAPTIVE_THRESH | CV_CALIB_CB_FILTER_QUADS);
 		if(found) {
+			///If the chessboard is found draw the detected corners in the frame
 			cornerSubPix(calibFRAMEGRAY, corners, Size(11, 11), Size(-1, -1), TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1));
-			drawChessboardCorners(calibFRAMEGRAY, board_sz, corners, found);
+			drawChessboardCorners(calibFRAMEGRAY, chessboard_size, corners, found);
 		}
 
 		imshow("Chessboard Frame",calibFRAMEGRAY);
 
-		getFrame();
-		calibFRAME=cvFRAME;
+		//getFrame();
+		//calibFRAME=cvFRAME;
 
+		///Take a snap if spacebar is presed.
 		key = waitKey(1);
 		if(key==27) return 0;
-		if(key==' ' && found!=0) {
-			image_points.push_back(corners);
-			object_points.push_back(obj);
+		if(key==' ' || key==10 && found!=0) {
+			detected_points.push_back(corners);
+			appended_points.push_back(chessboard_points);
 			cout << "Snap taken!" << endl;
 			successes++;
-			if(successes>=numBoards) break;
+			if(successes>=snapshots) break;
 		}
 	}
 
+	destroyWindow("Chessboard Frame");
 	//intrinsic was CV_32FC1
 	Mat intrinsic = Mat(3, 3, CV_64F);
-	Mat distCoeffs;
+	Mat distortion;
 	vector<Mat> rvecs;
 	vector<Mat> tvecs;
 
 	intrinsic.at<double>(0,0) = 1;
 	intrinsic.at<double>(1,1) = 1;
 
-
-	::calibrateCamera(object_points, image_points, calibFRAME.size(), intrinsic, distCoeffs, rvecs, tvecs);
+	///Calibrate the camera with the detected corners to calculate the intrisic parameter matrix and distortion coefficients matrix.
+	::calibrateCamera(appended_points, detected_points, cvFRAME.size(), intrinsic, distortion, rvecs, tvecs);
 
 	cout<<"Intrinsic matrix: \n"<<intrinsic<<endl;
 	cout<<"Intrinsic parameter fx: "<<intrinsic.at<double>(0,0)<<endl;
@@ -269,32 +278,35 @@ int NaoCam::calibrateCamera(void){
 	cout<<"Intrinsic parameter cy: "<<intrinsic.at<double>(1,2)<<endl;
 	cout<<intrinsic.at<double>(2,2)<<endl;
 
+	///Save the calibration into a .yml file.
 	cout<<"Saving intrisic camera matriz ..."<<endl;
 	FileStorage fsw("CALIBRATION.YML", FileStorage::WRITE);
 	fsw<< "CameraIntrinsicMatrix" <<intrinsic;
 	cout<<"Saving distortion coefficients matriz ..."<<endl;
-	fsw<< "DistortionCoefficientsMatrix" <<distCoeffs;
+	fsw<< "DistortionCoefficientsMatrix" <<distortion;
 	fsw.release();
 
 	namedWindow("Distorted Frame", WINDOW_AUTOSIZE );
 	namedWindow("Undistorted Frame", WINDOW_AUTOSIZE );
 
-	Mat imageUndistorted;
+	///Show the image undistorted
+	Mat undistorted_frame;
 	while(true) {
 		getFrame();
-		calibFRAME=cvFRAME;
-		undistort(calibFRAME, imageUndistorted, intrinsic, distCoeffs);
-		imshow("Distorted Frame", calibFRAME);
-		imshow("Undistorted Frame", imageUndistorted);
+		undistort(cvFRAME, undistorted_frame, intrinsic, distortion);
+		imshow("Distorted Frame", cvFRAME);
+		imshow("Undistorted Frame", undistorted_frame);
 
 		key = waitKey(1);
-		if(key==27) return 0;
+		if(key==27) break;
 	}
 
+	destroyAllWindows();
 	return 0;
 }
 
 void NaoCam::readParameters(void){
+	///This function reads the intrinsic and extrinsic parameters for a saved camara calibration.
 	if(ifstream("CALIBRATION.YML")){
 		Mat intrinsic=Mat(3, 3, CV_64F);
 		FileStorage fsr("CALIBRATION.YML", FileStorage::READ);
@@ -366,37 +378,7 @@ void NaoCam::featureTracking(Mat img_1, Mat img_2, vector<Point2f>& points1, vec
 
 double NaoCam::getAbsoluteScale(void)	{
 
-/*
-  string line;
-  int i = 0;
-  ifstream myfile ("/home/avisingh/Datasets/KITTI_VO/00.txt");
-  double x =0, y=0, z = 0;
-  double x_prev, y_prev, z_prev;
-  if (myfile.is_open())
-  {
-    while (( getline (myfile,line) ) && (i<=frame_id))
-    {
-      z_prev = z;
-      x_prev = x;
-      y_prev = y;
-      std::istringstream in(line);
-      //cout << line << '\n';
-      for (int j=0; j<12; j++)  {
-        in >> z ;
-        if (j==7) y=z;
-        if (j==3)  x=z;
-      }
-
-      i++;
-    }
-    myfile.close();
-  }
-
-  else {
-    cout << "Unable to open file";
-    return 0;
-  }
-	*/
+	///Function to get the absolute scale using the inertial module.
 	double x=instPOSITION.at(0);
 	double x_prev=prevPOSITION.at(0);
 
@@ -406,17 +388,17 @@ double NaoCam::getAbsoluteScale(void)	{
 	double z=instPOSITION.at(2);
 	double z_prev=prevPOSITION.at(2);
 
-	prevPOSITION.at(0)=instPOSITION.at(0);
-	prevPOSITION.at(1)=instPOSITION.at(1);
-	prevPOSITION.at(2)=instPOSITION.at(2);
-	cout<<"Position in x "<<x<<endl;
-	cout<<"Previous position in x "<<x_prev<<endl;
+	//cout<<"Position in x "<<x<<endl;
+	//cout<<"Previous position in x "<<x_prev<<endl;
 
+	double scale_calculation=sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev));
 
-	double scale_calculation=sqrt((x-x_prev)*(x-x_prev) + (y-y_prev)*(y-y_prev) + (z-z_prev)*(z-z_prev)) ;
+	//prevPOSITION.at(0)=instPOSITION.at(0);
+	//prevPOSITION.at(1)=instPOSITION.at(1);
+	//prevPOSITION.at(2)=instPOSITION.at(2);
+	prevPOSITION=instPOSITION;
 
   return scale_calculation;
-
 }
 
 
@@ -431,45 +413,45 @@ int NaoCam::startVO(void)	{
 	bool init=true;
 	double scale = 1.0;
 
-	int zoom=50;
+	int zoom=60;
 
 	//Intrinsic parameters of the camera:
 	readParameters();
   Point2d pp(cx, cy);
 
-  ofstream myfile;
-  myfile.open ("results.txt");
+	///Files to save the results.
+  ofstream myfile1;
+  myfile1.open ("TRAJECTORY.dat");
+	ofstream myfile2;
+  myfile2.open ("INERTIAL_TRAJECTORY.dat");
 
-  char text[100];
-	char acctext[100];
+  char coordinates[100];
+	char inertial_coordinates[100];
 
   int fontFace = FONT_HERSHEY_PLAIN;
   double fontScale = 1;
   int thickness = 1;
   Point textOrg(10, 50);
 
-  //Read the first frame and get the position of the nao.
-	prevPOSITION=mProxy.getPosition("CameraTop", 1, true);
+  ///Read the first frame and get the position of the nao.
 	undistortFrame();
-	//Wait the nao to change
+	///Wait the nao to change
 	usleep(1000000);
 
-  //We use grayscale images for better features detection.
+  ///We use grayscale images for better features detection.
   cvtColor(cvFRAME_UND, FRAME_P, COLOR_BGR2GRAY);
 	featureDetection(FRAME_P, FEATURES_P);
 
-  //clock_t begin = clock();
+  namedWindow( "Nao camera", WINDOW_AUTOSIZE ); /// Create a window for display.
+  namedWindow( "Trajectory", WINDOW_AUTOSIZE ); /// Create a window for display.
+	namedWindow( "Inertial unit trajectory", WINDOW_AUTOSIZE ); /// Create a window for display.
 
-  namedWindow( "Nao camera", WINDOW_AUTOSIZE );// Create a window for display.
-  namedWindow( "Trajectory", WINDOW_AUTOSIZE );// Create a window for display.
-	namedWindow( "Accelerometer trajectory", WINDOW_AUTOSIZE );// Create a window for display.
+	///Matrix containing the trajectory.
+  Mat trajectory = Mat(600, 600, CV_8UC3,Scalar(255,255,255));
+	Mat inertial_trajectory = Mat(600, 600, CV_8UC3,Scalar(255,255,255));
 
-  Mat traj = Mat(400, 400, CV_8UC3,Scalar(255,255,255));
-	Mat acceltraj = Mat(400, 400, CV_8UC3,Scalar(255,255,255));
-
-  //for(int numFrame=0; numFrame < MAX_FRAME; numFrame++)
 	while(true){
-		//Get the current frame.
+		///Get the current frame.
 		instPOSITION=mProxy.getPosition("CameraTop", 1, true);
 		undistortFrame();
   	cvtColor(cvFRAME_UND, FRAME_I, COLOR_BGR2GRAY);
@@ -477,71 +459,67 @@ int NaoCam::startVO(void)	{
   	vector<uchar> status;
   	featureTracking(FRAME_P, FRAME_I, FEATURES_P, FEATURES_I, status);
 
+		///Get the essential matrix.
   	E = findEssentialMat(FEATURES_I, FEATURES_P, focal, pp, RANSAC, 0.999, 1.0, mask);
   	recoverPose(E, FEATURES_I, FEATURES_P, R, t, focal, pp, mask);
 
-    Mat prevPts(2,FEATURES_P.size(), CV_64F), currPts(2,FEATURES_I.size(), CV_64F);
-
-
-   for(int i=0;i<FEATURES_P.size();i++)	{
-		 //this (x,y) combination makes sense as observed from the source code of triangulatePoints on GitHub
-  		prevPts.at<double>(0,i) = FEATURES_P.at(i).x;
-  		prevPts.at<double>(1,i) = FEATURES_P.at(i).y;
-
-  		currPts.at<double>(0,i) = FEATURES_I.at(i).x;
-  		currPts.at<double>(1,i) = FEATURES_I.at(i).y;
-    }
-
+		///If is the first frame intialize R_t and t_f.
 		if(init)
 		{
 			R_f=R.clone();
 			t_f=t.clone();
+			prevPOSITION=instPOSITION;
 			init=false;
 		}
 		else{
 				scale = getAbsoluteScale();
 				cout<<"The absolute scale is "<<scale<<endl;
 			if ((scale>0)&&(t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1))) {
-	      t_f = t_f + scale*(R_f*t);
-	      R_f = R*R_f;
+				R_f = R*R_f;
+				t_f = t_f + scale*(R_f*t);
 	    }
 			else {
 			 cout << "Scale below 0, or incorrect translation" << endl;
 			}
 		}
 
-  // A redetection is triggered in case the number of feautres being trakced go below a particular threshold
- 	  if (FEATURES_P.size() < MIN_NUM_FEAT)	{
+  /// A redetection is triggered in case the number of features being trakced go below a particular threshold
+ 	  //if (FEATURES_P.size() < MIN_NUM_FEAT)	{
  		  featureDetection(FRAME_P, FEATURES_P);
       featureTracking(FRAME_P,FRAME_I,FEATURES_P,FEATURES_I, status);
- 	  }
+ 	  //}
 
     FRAME_P = FRAME_I.clone();
     FEATURES_P = FEATURES_I;
 
-    circle(traj, Point(int(t_f.at<double>(0)*zoom) + 200, int(t_f.at<double>(2)*zoom) + 200) ,1, CV_RGB(0,50,190), 2);
-		circle(acceltraj, Point(int(instPOSITION.at(0)*20)+200, int(instPOSITION.at(1)*20)+200) ,1, CV_RGB(0,50,190), 2);
+    circle(trajectory, Point(int(t_f.at<double>(0)*zoom) + 300, int(t_f.at<double>(2)*zoom) + 300) ,1, CV_RGB(0,50,190), 2);
+		circle(inertial_trajectory, Point(int(instPOSITION.at(0)*20)+300, int(instPOSITION.at(1)*20)+300) ,1, CV_RGB(0,50,190), 2);
 
-    rectangle( traj, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
-		rectangle( acceltraj, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
+    rectangle( trajectory, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
+		rectangle( inertial_trajectory, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
 
-    sprintf(text, "Coordinates: x = %02f y = %02f z = %02f", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
-    putText(traj, text, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
+    sprintf(coordinates, "Coordinates: x = %02f y = %02f z = %02f", t_f.at<double>(0), t_f.at<double>(1), t_f.at<double>(2));
+    putText(trajectory, coordinates, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 
-		sprintf(acctext, "Coordinates: x = %02f y = %02f z = %02f", instPOSITION.at(0), instPOSITION.at(1), instPOSITION.at(1));
-    putText(acceltraj, acctext, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
+		sprintf(inertial_coordinates, "Coordinates: x = %02f y = %02f z = %02f", instPOSITION.at(0), instPOSITION.at(1), instPOSITION.at(1));
+    putText(inertial_trajectory, inertial_coordinates, textOrg, fontFace, fontScale, Scalar::all(0), thickness, 8);
 
     imshow( "Nao camera", FRAME_I);
-    imshow( "Trajectory", traj );
-		imshow( "Accelerometer trajectory", acceltraj );
+    imshow( "Odometry trajectory", trajectory );
+		imshow( "Inertial unit trajectory", inertial_trajectory );
+
+		myfile1<<t_f.at<double>(0)<<"\t"<<t_f.at<double>(1)<<"\t"<<t_f.at<double>(2)<<endl;
+		myfile2<<instPOSITION.at(0)<<"\t"<<instPOSITION.at(1)<<"\t"<<instPOSITION.at(2)<<endl;
 
 		key = waitKey(1);
 		if(key==27) break;
   }
 
 	cout<<"Saving trajectories into images..."<<endl;
-	imwrite("TRAJECTORY.PNG",traj);
-	imwrite("ACCELEROMETER_TRAJECTORY.PNG",acceltraj);
+	imwrite("TRAJECTORY.PNG",trajectory);
+	imwrite("INERTIAL_TRAJECTORY.PNG",inertial_trajectory);
+	myfile1.close();
+	myfile2.close();
 
   //clock_t end = clock();
   //double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
