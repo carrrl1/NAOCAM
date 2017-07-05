@@ -477,9 +477,9 @@ int NaoCam::startVO(void)	{
 			if ((scale>0)&&(t.at<double>(2) > t.at<double>(0)) && (t.at<double>(2) > t.at<double>(1))) {
 				R_f = R*R_f;
 				t_f = t_f + scale*(R_f*t);
-	    }
-			else {
-			 cout << "Scale below 0, or incorrect translation" << endl;
+	   	}
+		else {
+			 //cout << "Scale below 0, or incorrect translation" << endl;
 			}
 		}
 
@@ -492,7 +492,7 @@ int NaoCam::startVO(void)	{
     FRAME_P = FRAME_I.clone();
     FEATURES_P = FEATURES_I;
 
-    circle(trajectory, Point(int(t_f.at<double>(0)*zoom) + 300, int(t_f.at<double>(2)*zoom) + 300) ,1, CV_RGB(0,50,190), 2);
+    circle(trajectory, Point(int(t_f.at<double>(2)*zoom) + 300, int(t_f.at<double>(0)*zoom) + 300) ,1, CV_RGB(0,50,190), 2);
 		circle(inertial_trajectory, Point(int(instPOSITION.at(0)*20)+300, int(instPOSITION.at(1)*20)+300) ,1, CV_RGB(0,50,190), 2);
 
     rectangle( trajectory, Point(10, 30), Point(550, 50), CV_RGB(255,255,255), CV_FILLED);
@@ -508,7 +508,7 @@ int NaoCam::startVO(void)	{
     imshow( "Odometry trajectory", trajectory );
 		imshow( "Inertial unit trajectory", inertial_trajectory );
 
-		myfile1<<t_f.at<double>(0)<<"\t"<<t_f.at<double>(1)<<"\t"<<t_f.at<double>(2)<<endl;
+		myfile1<<t_f.at<double>(2)<<"\t"<<t_f.at<double>(0)<<"\t"<<t_f.at<double>(1)<<endl;
 		myfile2<<instPOSITION.at(0)<<"\t"<<instPOSITION.at(1)<<"\t"<<instPOSITION.at(2)<<endl;
 
 		key = waitKey(1);
